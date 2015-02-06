@@ -12,9 +12,10 @@ namespace BodySensor
     public class Program
     {
         public static int FRAME_DURATION = 100;
-        public static int X_PIXELS = 10;
-        public static int Y_PIXELS = 10;
-        public static double PIXEL_WIDTH = 0.2; // Assume 5 px/m => 20px/4m
+        public static int X_PIXELS = 3;
+        public static int Y_PIXELS = 3;
+        public static double PIXEL_WIDTH = 1; // Assume 5 px/m => 20px/4m
+        public static byte START_OF_MESSAGE = 0; // Assume 5 px/m => 20px/4m
 
         static void CalculatePixels(Skeleton[] skeletons, int[,] pixels)
         {
@@ -78,6 +79,8 @@ namespace BodySensor
             return g;
         }
 
+        // Print pixel grayscale in ASCII
+        // Adapted from http://larc.unt.edu/ian/art/ascii/shader/
         static void PrintPixels(int[,] pixels)
         {
             Console.OutputEncoding = System.Text.Encoding.Unicode;
@@ -139,14 +142,32 @@ namespace BodySensor
 
         static void SerialPixels(int[,] pixels, SerialPort port)
         {
-            byte val = Convert.ToByte(pixels[1, 1] / 3);
-            byte[] valByte = new Byte[] {val};
+            byte[] valByte = new Byte[X_PIXELS * Y_PIXELS + 1];
+            valByte[0] = START_OF_MESSAGE;
+            for (int y = 0; y < Y_PIXELS; y++)
+            {
+                for (int x = 0; x < X_PIXELS; x++)
+                {
+                    byte val = Convert.ToByte(pixels[x, y] / 3);
+                    if (val < 1)
+                    {
+                        val = 1;
+                    }
+                    else if (val > 90)
+                    {
+                        val = 90;
+                    }
+                    // Add 1-byte offset for start-of-message.
+                    valByte[y * Y_PIXELS + x + 1] = val;
+                }
+            }
 
-            Console.WriteLine("Target: " + val);
-            port.Write(valByte, 0, 1);
+            Console.WriteLine("Sending: " + valByte);
+            port.Write(valByte, 0, valByte.Length);
+
             try
             {
-                Console.WriteLine(String.Format("Read: {0}", port.ReadExisting()));
+                Console.WriteLine(String.Format("Read {0} bytes", port.ReadExisting()));
             }
             catch (TimeoutException) { }
         }
