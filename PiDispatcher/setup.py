@@ -19,5 +19,9 @@ setup(
             'dispatcher_server = dispatcher.server:run_server',
             'dispatcher_client = dispatcher.client:send_to_server',
         ]
-    }
+    },
+    install_requires={
+        "smbus",
+        "docopt",
+    },
 )
