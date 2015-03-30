@@ -41,13 +41,13 @@ class TcpHandler(BaseRequestHandler):
         _log.debug('Recieved data: %s', data)
         for ii, byte in enumerate(data):
             # Only check first 9 byte values (for 9 servos).
-            if ii >= 9:
+            if ii >= 15:
                 break
             print "%s: %s" % (ii, ord(byte))
-            setServoAngle(dispatcher.pwm, ii, byte)
+            setServoAngle(dispatcher.pwm, ii, ord(byte))
 
 
-def setServoAngle(pwm, channel, angle, pulse_length_min=1, pulse_length_max=2):
+def setServoAngle(pwm, channel, angle, pulse_length_min=0.8, pulse_length_max=3.0):
     """
     Set the servo angle to {angle} degrees.
     :param int channel: The channel to set the angle on.
@@ -57,7 +57,7 @@ def setServoAngle(pwm, channel, angle, pulse_length_min=1, pulse_length_max=2):
     :return: None
     """
     MAX_ANGLE = 180
-    assert angle <= MAX_ANGLE, "Angle must be less than or equal to 180 degrees."
+    assert angle <= MAX_ANGLE, "Angle must be less than or equal to 180 degrees. Got " + str(angle)
     angle_fraction = angle / MAX_ANGLE
     pulse_length = pulse_length_min + (pulse_length_max - pulse_length_min) * angle_fraction
     setServoPulse(pwm, channel, pulse_length)
@@ -79,8 +79,10 @@ def setServoPulse(pwm, channel, pulse):
     pulse *= 1000   # mS to uS
     # uS / (uS/bits) => # of bits
     # of pulse that must be 'on' to achieve pulse length
+    print('%d us pulse' % pulse)
     pulse /= pulseLength
-    pwm.setPWM(channel, 0, pulse)
+    print('%d bits per period' % int(round(pulse)))
+    pwm.setPWM(channel, 0, int(round(pulse)))
 
 
 def _init_servos():
