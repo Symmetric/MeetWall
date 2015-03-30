@@ -9,6 +9,8 @@ PI_IP = '192.168.1.14'
 TCP_PORT = 9999
 _log = logging.getLogger(__name__)
 
+dispatcher = None
+
 
 def run_server():
     """
@@ -16,6 +18,7 @@ def run_server():
     :return:
     """
     logging.basicConfig(level=logging.DEBUG, filename='dispatcher.log')
+    global dispatcher
     dispatcher = DispatcherServer()
     dispatcher.run()
 
@@ -41,7 +44,7 @@ class TcpHandler(BaseRequestHandler):
             if ii >= 9:
                 break
             print "%s: %s" % (ii, ord(byte))
-            setServoAngle()
+            setServoAngle(dispatcher.pwm, ii, byte)
 
 
 def setServoAngle(pwm, channel, angle, pulse_length_min=1, pulse_length_max=2):
