@@ -5,7 +5,8 @@ import string
 
 import docopt
 
-from dispatcher.server import TCP_PORT
+# from dispatcher.server import TCP_PORT
+TCP_PORT = 9999
 
 _log = logging.getLogger(__name__)
 
@@ -30,7 +31,7 @@ def send_to_server():
     input_ = args['MESSAGE']
     # Split into a list of str values, trimming whitespace to allow easy parsing.
     input_numbers = [int(s) for s in input_.replace(' ', '').split(',')]
-    input_string = string.join([chr(b) for b in input_list], '')
+    input_string = string.join([chr(b) for b in input_numbers], '')
 
     _log.info('Sending to server %s: %s', ip, [ord(b) for b in input_string])
 
