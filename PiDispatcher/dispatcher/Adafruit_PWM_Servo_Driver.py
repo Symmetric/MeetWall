@@ -32,12 +32,13 @@ class PWM :
   __INVRT              = 0x10
   __OUTDRV             = 0x04
 
-  general_call_i2c = Adafruit_I2C(0x00)
+  # general_call_i2c = Adafruit_I2C(0x00)
 
   @classmethod
   def softwareReset(cls):
     "Sends a software reset (SWRST) command to all the servo drivers on the bus"
-    cls.general_call_i2c.writeRaw8(0x06)        # SWRST
+    # cls.general_call_i2c.writeRaw8(0x06)        # SWRST
+    raise NotImplementedError('Workaround for bug https://github.com/adafruit/Adafruit-Raspberry-Pi-Python-Code/issues/114')
 
   def __init__(self, address=0x40, debug=False):
     self.i2c = Adafruit_I2C(address)
