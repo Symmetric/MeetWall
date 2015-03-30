@@ -89,3 +89,6 @@ def _init_servos():
 
     pwm.setPWMFreq(60)                        # Set frequency to 60 Hz
     return pwm
+
+if __name__ == '__main__':
+    run_server()
