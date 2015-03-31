@@ -71,7 +71,7 @@ def setServoPulse(pwm, channel, pulse):
     :return: None
     """
     pulseLength = 1000000                   # 1,000,000 us per second
-    pulseLength /= 60                       # 60 Hz
+    pulseLength /= 50                       # 60 Hz
     print("%d us per period" % pulseLength)
     # PulseLength gives the number of uS per bit of the pulse register
     pulseLength /= 4096                     # 12 bits of resolution
