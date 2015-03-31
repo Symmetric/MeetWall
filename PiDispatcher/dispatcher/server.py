@@ -47,7 +47,7 @@ class TcpHandler(BaseRequestHandler):
             setServoAngle(dispatcher.pwm, ii, ord(byte))
 
 
-def setServoAngle(pwm, channel, angle, pulse_length_min=0.8, pulse_length_max=3.0):
+def setServoAngle(pwm, channel, angle, pulse_length_min=1.0, pulse_length_max=2.0):
     """
     Set the servo angle to {angle} degrees.
     :param int channel: The channel to set the angle on.
@@ -89,7 +89,7 @@ def _init_servos():
     # Initialise the PWM device using the default address
     pwm = PWM(0x40, debug=True)
 
-    pwm.setPWMFreq(60)                        # Set frequency to 60 Hz
+    pwm.setPWMFreq(50)                        # Set frequency to 60 Hz
     return pwm
 
 if __name__ == '__main__':
