@@ -37,17 +37,20 @@ class DispatcherServer():
 class TcpHandler(BaseRequestHandler):
     def handle(self):
         # self.request is the TCP socket connected to the client
-        data = self.request.recv(1024).strip()
-        _log.debug('Recieved data: %s', data)
+        data = self.request.recv(1024)
+        _log.debug('Recieved data: %s, len %d', [ord(b) for b in data], len(data))
         for ii, byte in enumerate(data):
             # Only check first 9 byte values (for 9 servos).
             if ii >= 15:
                 break
             print "%s: %s" % (ii, ord(byte))
-            setServoAngle(dispatcher.pwm, ii, ord(byte))
+            try:
+                setServoAngle(dispatcher.pwm, ii, ord(byte))
+            except Exception as e:
+                _log.exception('Error setting servo %s', ii)
 
 
-def setServoAngle(pwm, channel, angle, pulse_length_min=0.544, pulse_length_max=2.2):
+def setServoAngle(pwm, channel, angle, pulse_length_min=0.65, pulse_length_max=2.6):
     """
     Set the servo angle to {angle} degrees.
     :param int channel: The channel to set the angle on.
@@ -71,16 +74,16 @@ def setServoPulse(pwm, channel, pulse):
     :return: None
     """
     pulseLength = 1000000.0                   # 1,000,000 us per second
-    pulseLength //= 50                       # 60 Hz
+    pulseLength /= 50                       # 60 Hz
     print("%d us per period" % pulseLength)
     # PulseLength gives the number of uS per bit of the pulse register
-    pulseLength //= 4096                     # 12 bits of resolution
+    pulseLength /= 4096                     # 12 bits of resolution
     print("%d us per bit" % pulseLength)
-    pulse *= 1000   # mS to uS
+    pulse *= 1000.0   # mS to uS
     # uS / (uS/bits) => # of bits
     # of pulse that must be 'on' to achieve pulse length
     print('%d us pulse' % pulse)
-    pulse //= pulseLength
+    pulse /= pulseLength
     print('%d bits per period' % int(round(pulse)))
     pwm.setPWM(channel, 0, int(round(pulse)))
 
