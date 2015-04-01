@@ -47,7 +47,7 @@ class TcpHandler(BaseRequestHandler):
             setServoAngle(dispatcher.pwm, ii, ord(byte))
 
 
-def setServoAngle(pwm, channel, angle, pulse_length_min=1.0, pulse_length_max=2.0):
+def setServoAngle(pwm, channel, angle, pulse_length_min=0.544, pulse_length_max=2.2):
     """
     Set the servo angle to {angle} degrees.
     :param int channel: The channel to set the angle on.
@@ -56,7 +56,7 @@ def setServoAngle(pwm, channel, angle, pulse_length_min=1.0, pulse_length_max=2.
     :param int pulse_length_max: The length of pulse for the servo's maximum angle, in ms.
     :return: None
     """
-    MAX_ANGLE = 180
+    MAX_ANGLE = 180.0
     assert angle <= MAX_ANGLE, "Angle must be less than or equal to 180 degrees. Got " + str(angle)
     angle_fraction = angle / MAX_ANGLE
     pulse_length = pulse_length_min + (pulse_length_max - pulse_length_min) * angle_fraction
@@ -70,24 +70,24 @@ def setServoPulse(pwm, channel, pulse):
     :param pulse:  The new pulse length, in ms.
     :return: None
     """
-    pulseLength = 1000000                   # 1,000,000 us per second
-    pulseLength /= 50                       # 60 Hz
+    pulseLength = 1000000.0                   # 1,000,000 us per second
+    pulseLength //= 50                       # 60 Hz
     print("%d us per period" % pulseLength)
     # PulseLength gives the number of uS per bit of the pulse register
-    pulseLength /= 4096                     # 12 bits of resolution
+    pulseLength //= 4096                     # 12 bits of resolution
     print("%d us per bit" % pulseLength)
     pulse *= 1000   # mS to uS
     # uS / (uS/bits) => # of bits
     # of pulse that must be 'on' to achieve pulse length
     print('%d us pulse' % pulse)
-    pulse /= pulseLength
+    pulse //= pulseLength
     print('%d bits per period' % int(round(pulse)))
     pwm.setPWM(channel, 0, int(round(pulse)))
 
 
 def _init_servos():
     # Initialise the PWM device using the default address
-    pwm = PWM(0x40, debug=True)
+    pwm = PWM(0x40)
 
     pwm.setPWMFreq(50)                        # Set frequency to 60 Hz
     return pwm
