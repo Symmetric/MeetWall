@@ -37,7 +37,7 @@ class TcpHandler(BaseRequestHandler):
     def handle(self):
         # self.request is the TCP socket connected to the client
         data = self.request.recv(1024)
-        _log.debug('Recieved data: %s, len %d', [ord(b) for b in data], len(data))
+        _log.debug('Received data: %s, len %d', [ord(b) for b in data], len(data))
         for ii, byte in enumerate(data):
             # Only check first 9 byte values (for 9 servos).
             if ii >= 160:
@@ -47,6 +47,7 @@ class TcpHandler(BaseRequestHandler):
                 setServoAngle(ii, ord(byte))
             except Exception as e:
                 _log.exception('Error setting servo %s', ii)
+        _log.debug('Request complete.')
 
 
 def setServoAngle(index, angle, pulse_length_min=0.65, pulse_length_max=2.6):
@@ -61,7 +62,7 @@ def setServoAngle(index, angle, pulse_length_min=0.65, pulse_length_max=2.6):
     # Integer division to get the index of the PWM instance (one for each 16 channels)
     pwm_index = index / 16
     # Channel is zero-indexed, 16 per PWM instance.
-    channel = index | 16
+    channel = index % 16
     _log.debug('Got index %d. Setting servo controller %d channel %d to angle %d',
                index, pwm_index, channel, angle)
     pwm = dispatcher.pwms[pwm_index]
@@ -98,8 +99,9 @@ def _init_servos():
     # Initialise the PWM devices
     pwms = []
     for index in range(10):
-        pwms[index] = PWM(0x40 + index)
-        pwms[index].setPWMFreq(50)
+        pwm = PWM(0x40 + index)
+        pwm.setPWMFreq(50)
+        pwms.append(pwm)
 
     return pwms
 
