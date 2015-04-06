@@ -1,11 +1,10 @@
 from SocketServer import TCPServer, BaseRequestHandler
-from _socket import gethostname
 import logging
 
 from dispatcher.Adafruit_PWM_Servo_Driver import PWM
 
 
-PI_IP = '192.168.1.14'
+PI_IP = '192.168.2.1'
 TCP_PORT = 9999
 _log = logging.getLogger(__name__)
 
@@ -25,7 +24,7 @@ def run_server():
 
 class DispatcherServer():
     def __init__(self):
-        self.pwm = _init_servos()
+        self.pwms = _init_servos()
         self.server = None
 
     def run(self):
@@ -41,16 +40,16 @@ class TcpHandler(BaseRequestHandler):
         _log.debug('Recieved data: %s, len %d', [ord(b) for b in data], len(data))
         for ii, byte in enumerate(data):
             # Only check first 9 byte values (for 9 servos).
-            if ii >= 15:
+            if ii >= 160:
                 break
             print "%s: %s" % (ii, ord(byte))
             try:
-                setServoAngle(dispatcher.pwm, ii, ord(byte))
+                setServoAngle(ii, ord(byte))
             except Exception as e:
                 _log.exception('Error setting servo %s', ii)
 
 
-def setServoAngle(pwm, channel, angle, pulse_length_min=0.65, pulse_length_max=2.6):
+def setServoAngle(index, angle, pulse_length_min=0.65, pulse_length_max=2.6):
     """
     Set the servo angle to {angle} degrees.
     :param int channel: The channel to set the angle on.
@@ -59,6 +58,13 @@ def setServoAngle(pwm, channel, angle, pulse_length_min=0.65, pulse_length_max=2
     :param int pulse_length_max: The length of pulse for the servo's maximum angle, in ms.
     :return: None
     """
+    # Integer division to get the index of the PWM instance (one for each 16 channels)
+    pwm_index = index / 16
+    # Channel is zero-indexed, 16 per PWM instance.
+    channel = index | 16
+    _log.debug('Got index %d. Setting servo controller %d channel %d to angle %d',
+               index, pwm_index, channel, angle)
+    pwm = dispatcher.pwms[pwm_index]
     MAX_ANGLE = 180.0
     assert angle <= MAX_ANGLE, "Angle must be less than or equal to 180 degrees. Got " + str(angle)
     angle_fraction = angle / MAX_ANGLE
@@ -89,11 +95,13 @@ def setServoPulse(pwm, channel, pulse):
 
 
 def _init_servos():
-    # Initialise the PWM device using the default address
-    pwm = PWM(0x40)
+    # Initialise the PWM devices
+    pwms = []
+    for index in range(10):
+        pwms[index] = PWM(0x40 + index)
+        pwms[index].setPWMFreq(50)
 
-    pwm.setPWMFreq(50)                        # Set frequency to 60 Hz
-    return pwm
+    return pwms
 
 if __name__ == '__main__':
     run_server()
