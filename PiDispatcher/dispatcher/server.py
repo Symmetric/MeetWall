@@ -1,11 +1,12 @@
 from SocketServer import TCPServer, BaseRequestHandler
+from datetime import datetime
 import logging
+import socket
 
 from dispatcher.Adafruit_PWM_Servo_Driver import PWM
+from thread import start_new_thread
+from dispatcher.common import set_logging, LISTEN_IP, TCP_PORT
 
-
-PI_IP = '192.168.2.1'
-TCP_PORT = 9999
 _log = logging.getLogger(__name__)
 
 dispatcher = None
@@ -16,7 +17,7 @@ def run_server():
     Entry point for the cli start script.
     :return:
     """
-    logging.basicConfig(level=logging.DEBUG, filename='dispatcher.log')
+    set_logging(_log)
     global dispatcher
     dispatcher = DispatcherServer()
     dispatcher.run()
@@ -28,32 +29,49 @@ class DispatcherServer():
         self.server = None
 
     def run(self):
-        self.server = TCPServer((PI_IP, TCP_PORT), TcpHandler)
-        print "Started server on %s:%s" % self.server.server_address
+        self.server = ReusingTCPServer((LISTEN_IP, TCP_PORT), TcpHandler)
+        _log.info("Started server on %s", self.server.server_address)
         self.server.serve_forever()
 
 
+class ReusingTCPServer(TCPServer):
+    def server_bind(self):
+            self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            self.socket.bind(self.server_address)
+
+
 class TcpHandler(BaseRequestHandler):
+    @profile
     def handle(self):
-        # self.request is the TCP socket connected to the client
-        data = self.request.recv(1024)
-        _log.debug('Received data: %s, len %d', [ord(b) for b in data], len(data))
-        for ii, byte in enumerate(data):
-            # Only check first 9 byte values (for 9 servos).
-            if ii >= 160:
-                break
-            print "%s: %s" % (ii, ord(byte))
-            try:
-                setServoAngle(ii, ord(byte))
-            except Exception as e:
-                _log.exception('Error setting servo %s', ii)
-        _log.debug('Request complete.')
+        try:
+            while True:
+                # self.request is the TCP socket connected to the client
+                data = self.request.recv(160)
+                if len(data) > 0:
+                    _log.debug('Received data: %s, len %d', [ord(b) for b in data], len(data))
+                    t0 = datetime.now()
+                    for ii, byte in enumerate(data):
+                        # Only check first 9 byte values (for 9 servos).
+                        if ii >= 160:
+                            break
+                        try:
+                            setServoAngle(ii, ord(byte))
+                        except Exception:
+                            _log.exception('Error setting servo %s', ii)
+                    delta = datetime.now() - t0
+                    _log.debug('Request complete in %s microseconds.', delta.microseconds)
+        except KeyboardInterrupt:
+            print('Killing server...')
+
+            def kill_me_please(server):
+                server.shutdown()
+            start_new_thread(kill_me_please, (dispatcher.server,))
 
 
 def setServoAngle(index, angle, pulse_length_min=0.65, pulse_length_max=2.6):
     """
     Set the servo angle to {angle} degrees.
-    :param int channel: The channel to set the angle on.
+    :param int index: The channel to set the angle on (globally indexed).
     :param int angle: The new angle, in degrees.
     :param int pulse_length_min: The length of pulse for the servo's minimum angle, in ms.
     :param int pulse_length_max: The length of pulse for the servo's maximum angle, in ms.
@@ -82,16 +100,16 @@ def setServoPulse(pwm, channel, pulse):
     """
     pulseLength = 1000000.0                   # 1,000,000 us per second
     pulseLength /= 50                       # 60 Hz
-    print("%d us per period" % pulseLength)
+    _log.debug("%d us per period", pulseLength)
     # PulseLength gives the number of uS per bit of the pulse register
     pulseLength /= 4096                     # 12 bits of resolution
-    print("%d us per bit" % pulseLength)
+    _log.debug("%d us per bit", pulseLength)
     pulse *= 1000.0   # mS to uS
     # uS / (uS/bits) => # of bits
     # of pulse that must be 'on' to achieve pulse length
-    print('%d us pulse' % pulse)
+    _log.debug('%d us pulse', pulse)
     pulse /= pulseLength
-    print('%d bits per period' % int(round(pulse)))
+    _log.debug('%d bits per period', int(round(pulse)))
     pwm.setPWM(channel, 0, int(round(pulse)))
 
 

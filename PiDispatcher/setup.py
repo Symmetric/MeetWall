@@ -23,5 +23,6 @@ setup(
     install_requires={
         "smbus-cffi",
         "docopt",
+        'line_profiler',
     },
 )
