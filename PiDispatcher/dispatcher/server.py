@@ -27,6 +27,7 @@ class DispatcherServer():
     def __init__(self):
         self.pwms = _init_servos()
         self.server = None
+        self.rendered_frame = [0] * 160
 
     def run(self):
         self.server = ReusingTCPServer((LISTEN_IP, TCP_PORT), TcpHandler)
@@ -49,14 +50,7 @@ class TcpHandler(BaseRequestHandler):
                 if len(data) > 0:
                     _log.debug('Received data: %s, len %d', [ord(b) for b in data], len(data))
                     t0 = datetime.now()
-                    for ii, byte in enumerate(data):
-                        # Only check first 9 byte values (for 9 servos).
-                        if ii >= 160:
-                            break
-                        try:
-                            setServoAngle(ii, ord(byte))
-                        except Exception:
-                            _log.exception('Error setting servo %s', ii)
+                    render(data)
                     delta = datetime.now() - t0
                     _log.debug('Request complete in %s microseconds.', delta.microseconds)
         except KeyboardInterrupt:
@@ -65,6 +59,17 @@ class TcpHandler(BaseRequestHandler):
             def kill_me_please(server):
                 server.shutdown()
             start_new_thread(kill_me_please, (dispatcher.server,))
+
+
+def render(data):
+    for ii, byte in enumerate(data):
+        if abs(dispatcher.rendered_frame[ii] - byte) < 5:
+            _log.debug('Updating frame %d with value %d.', ii, byte)
+            try:
+                setServoAngle(ii, ord(byte))
+            except Exception:
+                _log.exception('Error setting servo %s', ii)
+            dispatcher.rendered_frame[ii] = byte
 
 
 def setServoAngle(index, angle, pulse_length_min=0.65, pulse_length_max=2.6):
