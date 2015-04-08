@@ -41,7 +41,6 @@ class ReusingTCPServer(TCPServer):
 
 
 class TcpHandler(BaseRequestHandler):
-    @profile
     def handle(self):
         try:
             while True:

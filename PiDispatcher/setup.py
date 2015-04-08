@@ -18,11 +18,11 @@ setup(
         'console_scripts': [
             'dispatcher_server = dispatcher.server:run_server',
             'dispatcher_client = dispatcher.client:send_to_server',
+            'raindrop = dispatcher.raindrop:raindrop',
         ]
     },
     install_requires={
         "smbus-cffi",
         "docopt",
-        'line_profiler',
     },
 )
