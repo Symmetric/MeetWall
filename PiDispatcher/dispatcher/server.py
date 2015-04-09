@@ -63,13 +63,13 @@ class TcpHandler(BaseRequestHandler):
 
 def render(data):
     for ii, byte in enumerate(data):
-        if abs(dispatcher.rendered_frame[ii] - byte) < 5:
-            _log.debug('Updating frame %d with value %d.', ii, byte)
+        if abs(dispatcher.rendered_frame[ii] - ord(byte)) > 5:
+            _log.debug('Updating frame %d with value %d.', ii, ord(byte))
             try:
                 setServoAngle(ii, ord(byte))
             except Exception:
                 _log.exception('Error setting servo %s', ii)
-            dispatcher.rendered_frame[ii] = byte
+            dispatcher.rendered_frame[ii] = ord(byte)
 
 
 def setServoAngle(index, angle, pulse_length_min=0.65, pulse_length_max=2.6):
