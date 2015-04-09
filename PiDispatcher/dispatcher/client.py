@@ -1,6 +1,5 @@
 import logging
 import socket
-import string
 import time
 
 import docopt
@@ -23,7 +22,7 @@ def send_to_server():
     Usage: dispatcher_client [--ip=<IP>] [-r] MESSAGE
 
     Options:
-        --ip=<IP>  The IP to connect to [default: 127.0.0.1]
+        --ip=<IP>  The IP to connect to [default: 192.168.2.1]
         -r         Repeat the message sequence indefinitely
     """
     set_logging(_log, filename='dispatcher_client.log')
@@ -42,14 +41,13 @@ def send_to_server():
         for message in messages:
             # Split into a list of str values, trimming whitespace to allow easy parsing.
             input_numbers = [int(s) for s in message.replace(' ', '').replace('\n', '').split(',')]
-            input_string = string.join([chr(b) for b in input_numbers], '')
-            if len(input_string) < 160:
-                missing_bytes = 160 - len(input_string)
-                input_string += chr(0) * missing_bytes
+            output_bytes = ''.join([chr(b) for b in input_numbers])
+            if len(output_bytes) < 160:
+                missing_bytes = 160 - len(output_bytes)
+                output_bytes += ''.join(chr(0) * missing_bytes)
 
-            output_bytes = [ord(b) for b in input_string]
-            _log.info('Sending to server %s, len=%d: %s', ip, len(output_bytes), output_bytes)
-            sock.send(input_string)
+            _log.info('Sending to server %s, len=%d: %s', ip, len(output_bytes), [ord(b) for b in output_bytes])
+            sock.send(output_bytes)
             time.sleep(0.1)
 
         # If we're not in repeat mode, terminate.
